@@ -2,24 +2,6 @@ import hashlib
 import uuid
 
 
-def generate_hash(file_path: str) -> str:
-    """Compute SHA-256 hash of a file.
-
-    Reads the file in chunks to handle large files efficiently.
-
-    Args:
-        file_path: Absolute path to the file.
-
-    Returns:
-        Hex-encoded SHA-256 hash string.
-    """
-    sha256 = hashlib.sha256()
-    with open(file_path, 'rb') as f:
-        for chunk in iter(lambda: f.read(8192), b''):
-            sha256.update(chunk)
-    return sha256.hexdigest()
-
-
 def generate_hash_from_stream(stream) -> str:
     """Compute SHA-256 hash from a binary stream.
 
