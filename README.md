@@ -1,6 +1,6 @@
 # 🛡️ HashVault — Tamper-Proof Submission Integrity System
 
-HashVault is a secure digital submission platform that ensures the authenticity and integrity of uploaded files using cryptographic hashing and trusted timestamps. Once a file is submitted, any modification becomes immediately detectable.
+HashVault is a secure digital submission platform that ensures the authenticity and integrity of uploaded files using cryptographic hashing, blockchain-style anchoring, and trusted timestamps. Once a file is submitted, any modification becomes immediately detectable.
 
 Designed for hackathons, academic evaluations, and competitive events, HashVault prevents post-deadline changes and disputes over originality by providing verifiable proof of submission.
 
@@ -8,14 +8,14 @@ Designed for hackathons, academic evaluations, and competitive events, HashVault
 
 ## 🚀 Features
 
-- 🔐 SHA-256 Cryptographic Hashing  
-- ⏱️ Trusted Timestamp Generation  
-- 📤 Secure File Submission  
-- 🔍 Tamper Detection & Verification  
-- 🗄️ MySQL Proof Storage  
-- ⚛️ React Frontend + Flask Backend  
-- 🧾 Unique Submission ID  
-- 🛡️ Integrity Assurance  
+- 🔐 **SHA-256 Cryptographic Hashing** — unique digital fingerprint for every file
+- ⛓️ **Blockchain-Style Anchoring** — submissions chained together for integrity
+- 🔑 **JWT Authentication** — secure signup/login with bcrypt password hashing
+- 📤 **Secure File Submission** — files stored as BLOBs directly in MySQL
+- 🔍 **Tamper Detection & Verification** — re-hash and compare to detect changes
+- 🗄️ **MySQL Persistent Storage** — submissions, anchors, and users
+- 🧾 **Unique Submission IDs** — `HV-` prefixed identifiers for every submission
+- 🛡️ **Centralized Error Handling** — clean JSON responses for all error types
 
 ---
 
@@ -23,29 +23,40 @@ Designed for hackathons, academic evaluations, and competitive events, HashVault
 
 ### 📤 Submission
 
-1. User uploads a file  
-2. Backend generates SHA-256 hash (digital fingerprint)  
-3. File stored securely on server  
-4. Hash + timestamp saved in database  
-5. Submission ID returned as proof  
+1. User uploads a file
+2. Backend streams file and computes SHA-256 hash (digital fingerprint)
+3. File stored as BLOB in MySQL database
+4. Blockchain anchor hash generated (links to previous submission's anchor)
+5. Hash + timestamp + anchor saved in database
+6. Submission ID returned as proof
 
 ### 🔍 Verification
 
-1. Judge uploads file for verification  
-2. Backend recomputes hash  
-3. System compares with stored hash  
-4. Result displayed:
-   - ✅ Authentic (Unmodified)  
-   - ❌ Tampered (Modified)  
+1. User uploads file for verification along with submission ID
+2. Backend recomputes SHA-256 hash from uploaded file
+3. System compares with stored hash in database
+4. Result returned:
+   - ✅ **Authentic** — file is unmodified since submission
+   - ❌ **Tampered** — file has been modified
+
+### ⛓️ Blockchain Anchoring
+
+Each submission is chained to the previous one using a hash that includes:
+
+- Block index, submission ID, file hash, timestamp, and previous anchor hash
+
+This creates an immutable chain — tampering with any earlier submission breaks the entire chain.
 
 ---
 
 ## 🏗️ System Architecture
 
 ```
-React Frontend → Flask API → MySQL Database
-                    ↓
-              File Storage
+React Frontend (planned) → Flask API → MySQL Database
+                               ↓
+                     File BLOB Storage (in DB)
+                               ↓
+                     Blockchain Anchor Chain
 ```
 
 ---
@@ -56,56 +67,26 @@ React Frontend → Flask API → MySQL Database
 hashvault/
 │
 ├── backend/
-│   ├── app.py                  # Main Flask server
-│   ├── config.py               # Configuration (DB, paths)
-│   ├── requirements.txt        # Python dependencies
-│   │
-│   ├── uploads/                # Stored submitted files
-│   │
-│   ├── models/
-│   │   └── submission_model.py
+│   ├── app.py                     # Flask server + error handlers
+│   ├── config.py                  # Configuration (DB, JWT, CORS)
+│   ├── requirements.txt           # Pinned Python dependencies
+│   ├── .env.example               # Environment variable template
 │   │
 │   ├── routes/
-│   │   ├── submit_routes.py    # Submission API
-│   │   └── verify_routes.py    # Verification API
+│   │   ├── auth_routes.py         # Signup, Login, Me endpoints
+│   │   ├── submit_routes.py       # File submission API
+│   │   └── verify_routes.py       # File verification API
 │   │
 │   ├── utils/
-│   │   ├── hash_utils.py       # SHA-256 hashing logic
-│   │   ├── db_utils.py         # Database operations
-│   │   └── qr_utils.py         # Optional QR generation
+│   │   ├── hash_utils.py          # SHA-256 stream hashing
+│   │   ├── db_utils.py            # MySQL operations + schema init
+│   │   ├── auth_middleware.py     # @auth_required JWT decorator
+│   │   └── storage.py            # Storage abstraction layer
 │   │
 │   └── database/
-│       └── schema.sql          # MySQL schema
+│       └── schema.sql             # Reference MySQL schema
 │
-├── frontend/
-│   ├── public/
-│   │
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Navbar.jsx
-│   │   │   ├── FileUpload.jsx
-│   │   │   ├── VerifyUpload.jsx
-│   │   │   └── ResultCard.jsx
-│   │   │
-│   │   ├── pages/
-│   │   │   ├── Home.jsx
-│   │   │   ├── Submit.jsx
-│   │   │   └── Verify.jsx
-│   │   │
-│   │   ├── api/
-│   │   │   └── api.js          # Axios API config
-│   │   │
-│   │   ├── styles/
-│   │   │   └── main.css
-│   │   │
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   │
-│   └── package.json
-│
-├── database/
-│   └── schema.sql              # Database setup
-│
+├── .gitignore
 └── README.md
 ```
 
@@ -113,33 +94,57 @@ hashvault/
 
 ## ⚙️ Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | React (Vite), Axios, CSS |
-| **Backend** | Python Flask, Flask-CORS |
-| **Database** | MySQL |
-| **Security** | SHA-256 Cryptographic Hashing |
+| Layer        | Technology                                  |
+| ------------ | ------------------------------------------- |
+| **Backend**  | Python Flask, Flask-CORS                    |
+| **Database** | MySQL 8.x                                   |
+| **Auth**     | JWT (PyJWT) + bcrypt                        |
+| **Security** | SHA-256 hashing, blockchain-style anchoring |
+| **Frontend** | React (Vite) — _planned_                    |
 
 ---
 
 ## 🗄️ Database Schema
 
 ```sql
-CREATE DATABASE hashvault;
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+);
 
 CREATE TABLE submissions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    submission_id VARCHAR(100),
-    filename VARCHAR(255),
-    file_hash VARCHAR(256),
-    team_name VARCHAR(255),
-    timestamp DATETIME
+    submission_id VARCHAR(100) NOT NULL UNIQUE,
+    filename VARCHAR(255) NULL,
+    content_type VARCHAR(255) NULL,
+    file_size BIGINT NULL,
+    file_blob LONGBLOB NULL,
+    file_hash CHAR(64) NOT NULL,
+    timestamp DATETIME(6) NOT NULL,
+    anchored_at DATETIME(6) NOT NULL,
+    anchor_hash CHAR(64) NOT NULL UNIQUE,
+    prev_anchor_hash CHAR(64) NULL
+);
+
+CREATE TABLE anchors (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    block_index BIGINT NOT NULL UNIQUE,
+    submission_id VARCHAR(100) NOT NULL UNIQUE,
+    file_hash CHAR(64) NOT NULL,
+    anchored_at DATETIME(6) NOT NULL,
+    prev_anchor_hash CHAR(64) NULL,
+    anchor_hash CHAR(64) NOT NULL UNIQUE
 );
 ```
 
+> Tables are auto-created on server startup by `db_utils.init_database()`.
+
 ---
 
-## 🔧 Backend Setup (Flask)
+## 🔧 Backend Setup
 
 ```bash
 cd backend
@@ -159,8 +164,13 @@ source venv/bin/activate
 **Install dependencies:**
 
 ```bash
-pip install flask flask-cors pymysql qrcode reportlab
-pip freeze > requirements.txt
+pip install -r requirements.txt
+```
+
+**Configure environment:** Copy `.env.example` to `.env` and fill in your values:
+
+```bash
+cp .env.example .env
 ```
 
 **Run server:**
@@ -173,25 +183,23 @@ python app.py
 
 ---
 
-## 🎨 Frontend Setup (React)
-
-```bash
-cd frontend
-npm install
-npm install axios
-npm run dev
-```
-
-> Frontend runs at: `http://localhost:5173`
-
----
-
 ## 🔗 API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/submit` | Submit file — returns submission ID, hash, timestamp |
-| `POST` | `/api/verify` | Verify file — returns authenticity result |
+### Authentication
+
+| Method | Endpoint           | Auth   | Description                                        |
+| ------ | ------------------ | ------ | -------------------------------------------------- |
+| `POST` | `/api/auth/signup` | No     | Register — `{username, email, password}`           |
+| `POST` | `/api/auth/login`  | No     | Login — `{username, password}` (username or email) |
+| `GET`  | `/api/auth/me`     | Bearer | Get current authenticated user                     |
+
+### File Operations
+
+| Method | Endpoint      | Auth | Description                                       |
+| ------ | ------------- | ---- | ------------------------------------------------- |
+| `POST` | `/api/submit` | No   | Submit file — returns submission ID, hash, anchor |
+| `POST` | `/api/verify` | No   | Verify file — returns authenticity result         |
+| `GET`  | `/api/health` | No   | Health check                                      |
 
 ---
 
@@ -207,19 +215,20 @@ npm run dev
 
 ## 🏆 Demo Workflow
 
-1. **Upload** original file → Receive proof
-2. **Modify** file slightly
-3. **Verify** modified file
-4. **System detects** tampering instantly
+1. **Sign up** for an account
+2. **Upload** original file → receive submission ID + blockchain anchor proof
+3. **Modify** the file slightly
+4. **Verify** the modified file with the submission ID
+5. **System detects** tampering instantly ❌
 
 ---
 
 ## 🔮 Future Enhancements
 
+- [ ] React frontend (Submit, Verify, Dashboard pages)
 - [ ] QR-based verification
 - [ ] Digital submission certificates
-- [ ] Blockchain timestamping
-- [ ] Role-based authentication
+- [ ] Role-based access control
 - [ ] Admin dashboard
 - [ ] Cloud storage integration
 
