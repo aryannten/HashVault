@@ -52,11 +52,11 @@ This creates an immutable chain — tampering with any earlier submission breaks
 ## 🏗️ System Architecture
 
 ```
-React Frontend (planned) → Flask API → MySQL Database
-                               ↓
-                     File BLOB Storage (in DB)
-                               ↓
-                     Blockchain Anchor Chain
+React Frontend (Vite) → Flask API → MySQL Database
+                              ↓
+                    File BLOB Storage (in DB)
+                              ↓
+                    Blockchain Anchor Chain
 ```
 
 ---
@@ -81,10 +81,30 @@ hashvault/
 │   │   ├── hash_utils.py          # SHA-256 stream hashing
 │   │   ├── db_utils.py            # MySQL operations + schema init
 │   │   ├── auth_middleware.py     # @auth_required JWT decorator
-│   │   └── storage.py            # Storage abstraction layer
+│   │   └── storage.py             # Storage abstraction layer
 │   │
 │   └── database/
 │       └── schema.sql             # Reference MySQL schema
+│
+├── frontend/
+│   ├── package.json               # Dependencies & scripts
+│   ├── vite.config.js             # Vite dev server config
+│   ├── index.html                 # HTML entry point
+│   │
+│   └── src/
+│       ├── main.jsx               # React entry point
+│       ├── main.css               # Global styles & theme engine
+│       ├── App.jsx                # Routing, layout & sidebar
+│       │
+│       ├── pages/
+│       │   ├── Login.jsx          # Login & Signup (JWT auth)
+│       │   └── Home.jsx           # Dashboard (placeholder)
+│       │
+│       └── components/
+│           ├── FileUpload.jsx     # File submission with hash result
+│           ├── VerifyHash.jsx     # File verification (Admin only)
+│           ├── VerifyUpload.jsx   # Audit trail viewer
+│           └── Settings.jsx       # Theme toggle (dark/light)
 │
 ├── .gitignore
 └── README.md
@@ -225,10 +245,10 @@ python app.py
 
 ## 🔮 Future Enhancements
 
-- [ ] React frontend (Submit, Verify, Dashboard pages)
+- [x] React frontend (Submit, Verify, Dashboard pages)
+- [x] Role-based access control
 - [ ] QR-based verification
 - [ ] Digital submission certificates
-- [ ] Role-based access control
 - [ ] Admin dashboard
 - [ ] Cloud storage integration
 
