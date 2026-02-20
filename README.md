@@ -100,7 +100,7 @@ hashvault/
 | **Database** | MySQL 8.x                                   |
 | **Auth**     | JWT (PyJWT) + bcrypt                        |
 | **Security** | SHA-256 hashing, blockchain-style anchoring |
-| **Frontend** | React (Vite) — _planned_                    |
+| **Frontend** | React (Vite)                                |
 
 ---
 
