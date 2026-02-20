@@ -30,19 +30,14 @@ const DashboardLayout = ({ children, title, role }) => {
         </div>
         
         <nav className="nav-list">
-          {/* Sabko dikhega */}
           <NavLink to="/submit" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
             <UploadCloud size={20} /> <span>Upload Files</span>
           </NavLink>
-          
-          {/* ⭐ Role Logic: Verify sirf Admin ko dikhega */}
           {role === 'Admin' && (
             <NavLink to="/verify" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
               <Search size={20} /> <span>Verify Hash</span>
             </NavLink>
           )}
-
-          {/* ⭐ Sabko dikhega (Operator & Admin) */}
           <NavLink to="/settings" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
             <SettingsIcon size={20} /> <span>Settings</span>
           </NavLink>
@@ -74,23 +69,19 @@ const DashboardLayout = ({ children, title, role }) => {
 
 function App() {
   const userRole = localStorage.getItem('userRole') || 'Operator';
+  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
 
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={isAuthenticated ? <Navigate to="/submit" replace /> : <Login />} />
         <Route path="/submit" element={<DashboardLayout title="Secure File Submission" role={userRole}><FileUpload /></DashboardLayout>} />
-        
-        {/* Verify Hash: Protected (Only Admin) */}
         <Route path="/verify" element={
-            userRole === 'Admin' ? (
-                <DashboardLayout title="Integrity Audit Engine" role={userRole}><VerifyHash /></DashboardLayout>
-            ) : <Navigate to="/submit" replace />
+          userRole === 'Admin'
+            ? <DashboardLayout title="Integrity Audit Engine" role={userRole}><VerifyHash /></DashboardLayout>
+            : <Navigate to="/submit" replace />
         } />
-
-        {/* Settings: Sabke liye functional */}
         <Route path="/settings" element={<DashboardLayout title="System Configuration" role={userRole}><Settings /></DashboardLayout>} />
-        
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

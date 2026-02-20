@@ -289,7 +289,7 @@ def save_submission_mysql(
         'content_type': content_type,
         'file_size': file_size,
         'file_hash': file_hash,
-        'timestamp': timestamp,
+        'timestamp': _to_api_timestamp(submission_time),
         'anchored_at': _to_api_timestamp(anchored_at),
         'anchor_hash': anchor_hash,
         'prev_anchor_hash': prev_anchor_hash,
