@@ -36,7 +36,7 @@ const FileUpload = () => {
                  style={{height:'150px', border:'2px dashed var(--border)', background:'rgba(0,0,0,0.2)'}}>
                 <input id="f1" type="file" hidden onChange={(e)=>setFile(e.target.files[0])} />
                 <Upload size={32} color="var(--text-dim)" />
-                <p style={{fontSize:'0.85rem'}}>{file ? file.name : "Drop Secure Package Here"}</p>
+                <p style={{fontSize:'0.85rem'}}>{file ? file.name : "Drop Secure Package (Max. size-60MB)"}</p>
             </div>
 
             <button onClick={handleSubmit} className="submit-btn" style={{width:'100%', marginTop:'20px'}}>
