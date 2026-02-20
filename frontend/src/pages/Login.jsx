@@ -58,7 +58,7 @@ const Login = () => {
                 localStorage.setItem('username', data.user.username);
             }
             
-            navigate('/submit');
+            navigate('/');
             window.location.reload();
         } catch (err) {
             setError('Failed to connect to the server. Is the backend running?');
@@ -88,7 +88,6 @@ const Login = () => {
                 )}
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    {/* Username (signup only) */}
                     {isSignup && (
                         <div className="input-with-icon">
                             <UserPlus className="input-icon" size={18} />
@@ -100,7 +99,6 @@ const Login = () => {
                         </div>
                     )}
 
-                    {/* Email / Username Input */}
                     <div className="input-with-icon">
                         <Mail className="input-icon" size={18} />
                         <input 
@@ -110,7 +108,6 @@ const Login = () => {
                         />
                     </div>
 
-                    {/* Role Selector */}
                     <div className="input-with-icon">
                         <UserCheck className="input-icon" size={18} />
                         <select 
@@ -126,7 +123,6 @@ const Login = () => {
                         </select>
                     </div>
 
-                    {/* Password Input */}
                     <div className="input-with-icon">
                         <Lock className="input-icon" size={18} />
                         <input 

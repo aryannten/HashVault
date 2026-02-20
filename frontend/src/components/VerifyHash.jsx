@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { Search, FileCheck, RefreshCw, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
-import { verifyFile } from '../api/api';
 
 const VerifyHash = () => {
     const [targetHash, setTargetHash] = useState('');
@@ -10,22 +9,9 @@ const VerifyHash = () => {
     const [error, setError] = useState(null);
     const fileInputRef = useRef(null);
 
-    const handleFileSelect = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setSelectedFile(file);
-            setResult(null);
-            setError(null);
-        }
-    };
-
     const handleVerify = async () => {
-        if (!selectedFile) {
-            setError('Please select a file to verify.');
-            return;
-        }
-        if (!targetHash.trim()) {
-            setError('Please enter the submission ID or hash.');
+        if (!targetHash || !selectedFile) {
+            setError("Please provide both a submission ID and a file.");
             return;
         }
 
@@ -38,7 +24,11 @@ const VerifyHash = () => {
             formData.append('file', selectedFile);
             formData.append('submission_id', targetHash.trim());
 
-            const data = await verifyFile(formData);
+            const response = await fetch('http://localhost:5000/api/verify', {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
 
             if (data.error) {
                 setError(data.error);
@@ -46,7 +36,7 @@ const VerifyHash = () => {
                 setResult(data);
             }
         } catch (err) {
-            setError('Failed to connect to the server. Please check if the backend is running.');
+            setError("Connection to security node failed.");
         } finally {
             setLoading(false);
         }
@@ -54,67 +44,69 @@ const VerifyHash = () => {
 
     return (
         <div className="pro-card">
-            <div style={{display:'flex', justifyContent:'space-between', marginBottom:'25px'}}>
-                <h3 style={{margin:0, fontSize:'1.2rem'}}>Audit Logs</h3>
-                <span className="status-badge" style={{background:'rgba(255,255,255,0.05)', color:'var(--text-dim)'}}>Verification Engine</span>
-            </div>
+            <h3 style={{ margin: '0 0 25px 0', fontSize: '1.2rem' }}>Quick Hash Verification</h3>
 
-            <div className="input-field-wrapper">
-                <label style={{fontSize:'0.75rem', color:'var(--text-dim)', marginBottom:'8px', display:'block'}}>SUBMISSION ID</label>
+            <div className="input-field-wrapper" style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '8px', display: 'block' }}>SUBMISSION ID</label>
                 <div className="input-with-icon">
                     <Search className="input-icon" size={18} />
-                    <input type="text" placeholder="Paste submission ID to verify..." value={targetHash} onChange={(e)=>setTargetHash(e.target.value)} />
+                    <input 
+                        type="text" 
+                        placeholder="e.g. HV-20316EF525B9" 
+                        value={targetHash} 
+                        onChange={(e) => setTargetHash(e.target.value)} 
+                    />
                 </div>
             </div>
 
-            <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelect}
-                style={{ display: 'none' }}
-            />
-
-            <div
-                className="upload-box"
-                style={{height:'100px', border:'1px solid var(--border)', cursor:'pointer'}}
-                onClick={() => fileInputRef.current?.click()}
+            <div 
+                className="upload-box" 
+                onClick={() => fileInputRef.current.click()}
+                style={{ height: '100px', border: '1px solid var(--border)', background: 'rgba(0,0,0,0.1)', cursor: 'pointer' }}
             >
-                <FileCheck size={28} color="var(--primary)" />
-                <p style={{fontSize:'0.8rem'}}>
-                    {selectedFile ? `📄 ${selectedFile.name}` : 'Click to Select Local File for Cross-Check'}
+                <input type="file" hidden ref={fileInputRef} onChange={(e) => setSelectedFile(e.target.files[0])} />
+                <FileCheck size={24} color={selectedFile ? 'var(--primary)' : 'var(--text-dim)'} />
+                <p style={{ fontSize: '0.85rem', margin: '10px 0 0 0' }}>
+                    {selectedFile ? selectedFile.name : "Select File for Comparison"}
                 </p>
             </div>
 
+            <button onClick={handleVerify} className="submit-btn" style={{ width: '100%', marginTop: '20px' }} disabled={loading}>
+                <RefreshCw size={18} className={loading ? 'spinning' : ''} />
+                {loading ? ' VERIFYING...' : ' RUN AUDIT CHECK'}
+            </button>
+
             {error && (
-                <div style={{marginTop:'15px', padding:'12px', borderRadius:'10px', background:'rgba(255,80,80,0.1)', border:'1px solid rgba(255,80,80,0.3)', color:'#ff5050', fontSize:'0.85rem', display:'flex', alignItems:'center', gap:'8px'}}>
-                    <AlertCircle size={16} /> {error}
+                <div style={{ marginTop: '20px', padding: '15px', background: 'rgba(255,80,80,0.1)', borderRadius: '12px', borderLeft: '4px solid #ff5050', color: '#ff5050', display: 'flex', gap: '10px' }}>
+                    <AlertCircle size={18} />
+                    <span style={{ fontSize: '0.85rem' }}>{error}</span>
                 </div>
             )}
 
             {result && (
-                <div style={{marginTop:'15px', padding:'15px', borderRadius:'10px', background: result.verified ? 'rgba(0,255,136,0.08)' : 'rgba(255,80,80,0.08)', border: `1px solid ${result.verified ? 'rgba(0,255,136,0.3)' : 'rgba(255,80,80,0.3)'}` }}>
-                    <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'10px', color: result.verified ? '#00ff88' : '#ff5050', fontWeight:'700', fontSize:'0.95rem'}}>
-                        {result.verified ? <CheckCircle size={20}/> : <XCircle size={20}/>}
-                        {result.status}
+                <div style={{ 
+                    marginTop: '25px', padding: '20px', borderRadius: '15px', 
+                    background: result.verified ? 'rgba(0, 255, 136, 0.05)' : 'rgba(255, 80, 80, 0.05)',
+                    border: `1px solid ${result.verified ? 'var(--primary)' : '#ff5050'}`
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '15px' }}>
+                        {result.verified ? <CheckCircle color="var(--primary)" /> : <XCircle color="#ff5050" />}
+                        <span style={{ fontWeight: '700', fontSize: '1.1rem' }}>{result.status}</span>
                     </div>
-                    <div style={{fontSize:'0.75rem', color:'var(--text-dim)', display:'flex', flexDirection:'column', gap:'6px'}}>
-                        <span><strong>Original Hash:</strong> {result.original_hash}</span>
-                        <span><strong>Uploaded Hash:</strong> {result.uploaded_hash}</span>
-                        <span><strong>Submitted At:</strong> {result.timestamp}</span>
+                    <div style={{ display: 'grid', gap: '10px' }}>
+                        <div style={{ fontSize: '0.75rem' }}>
+                            <div style={{ color: 'var(--text-dim)' }}>STORED ON LEDGER</div>
+                            <code style={{ color: 'var(--primary)', wordBreak: 'break-all' }}>{result.original_hash}</code>
+                        </div>
+                        <div style={{ fontSize: '0.75rem' }}>
+                            <div style={{ color: 'var(--text-dim)' }}>UPLOADED COPY</div>
+                            <code style={{ color: result.verified ? 'var(--primary)' : '#ff5050', wordBreak: 'break-all' }}>{result.uploaded_hash}</code>
+                        </div>
                     </div>
                 </div>
             )}
-
-            <button
-                className="submit-btn"
-                style={{width:'100%', marginTop:'20px', background:'transparent', border:'1px solid var(--primary)', color:'var(--primary)'}}
-                onClick={handleVerify}
-                disabled={loading}
-            >
-                <RefreshCw size={18} className={loading ? 'spinning' : ''} />
-                {loading ? ' VERIFYING...' : ' RUN AUDIT CHECK'}
-            </button>
         </div>
     );
 };
+
 export default VerifyHash;
