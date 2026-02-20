@@ -1,7 +1,9 @@
 """MySQL helpers for submission persistence with blockchain-style anchoring."""
 
 import hashlib
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+
+IST = timezone(timedelta(hours=5, minutes=30))
 
 
 def _cfg(config, key: str, default=None):
@@ -51,9 +53,9 @@ def _to_api_timestamp(value) -> str:
     if isinstance(value, datetime):
         if value.tzinfo is None:
             value = value.replace(tzinfo=timezone.utc)
-        else:
-            value = value.astimezone(timezone.utc)
-        return value.isoformat()
+        # Convert to IST for the API display
+        ist_value = value.astimezone(IST)
+        return ist_value.strftime('%d-%B-%Y | %I:%M %p') + " IST"
     return str(value)
 
 

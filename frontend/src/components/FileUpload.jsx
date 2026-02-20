@@ -5,15 +5,36 @@ const FileUpload = () => {
     const [team, setTeam] = useState('');
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [hash, setHash] = useState('');
+    const [result, setResult] = useState(null);
+    const [error, setError] = useState('');
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if(!team || !file) return alert("All fields are mandatory!");
         setLoading(true);
-        setTimeout(() => {
-            setHash("SHA256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        setError('');
+        setResult(null);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('team', team);
+
+            const response = await fetch('http://localhost:5000/api/submit', {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+
+            if (data.error) {
+                setError(data.error);
+            } else {
+                setResult(data);
+            }
+        } catch (err) {
+            setError('Failed to connect to the server.');
+        } finally {
             setLoading(false);
-        }, 1500);
+        }
     };
 
     return (
@@ -39,14 +60,25 @@ const FileUpload = () => {
                 <p style={{fontSize:'0.85rem'}}>{file ? file.name : "Drop Secure Package (Max. size-60MB)"}</p>
             </div>
 
-            <button onClick={handleSubmit} className="submit-btn" style={{width:'100%', marginTop:'20px'}}>
+            <button onClick={handleSubmit} className="submit-btn" style={{width:'100%', marginTop:'20px'}} disabled={loading}>
                 {loading ? <Loader2 className="spinner-icon" /> : <><Shield size={18}/> SEAL & SUBMIT</>}
             </button>
 
-            {hash && (
+            {error && (
+                <div style={{marginTop:'20px', padding:'15px', background:'rgba(255,80,80,0.1)', borderRadius:'12px', borderLeft:'4px solid #ff5050', color:'#ff5050', fontSize:'0.8rem'}}>
+                    {error}
+                </div>
+            )}
+
+            {result && (
                 <div style={{marginTop:'20px', padding:'15px', background:'#000', borderRadius:'12px', borderLeft:'4px solid var(--primary)'}}>
-                    <div style={{fontSize:'0.65rem', color:'var(--primary)', fontWeight:800}}>INTEGRITY HASH GENERATED</div>
-                    <code style={{fontSize:'0.75rem', wordBreak:'break-all'}}>{hash}</code>
+                    <div style={{fontSize:'0.65rem', color:'var(--primary)', fontWeight:800, marginBottom:'8px'}}>INTEGRITY HASH GENERATED</div>
+                    <code style={{fontSize:'0.75rem', wordBreak:'break-all', display:'block', marginBottom:'8px'}}>SHA256: {result.file_hash}</code>
+                    <div style={{fontSize:'0.7rem', color:'var(--text-dim)', marginTop:'5px'}}>
+                        <div>Submission ID: <span style={{color:'var(--primary)'}}>{result.submission_id}</span></div>
+                        <div>File: {result.filename} ({result.file_size} bytes)</div>
+                        <div>Timestamp: {result.timestamp}</div>
+                    </div>
                 </div>
             )}
         </div>

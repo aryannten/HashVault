@@ -61,7 +61,7 @@ const DashboardLayout = ({ children, title, role }) => {
           <div className="user-badge" style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--border-color)', padding: '8px 15px', borderRadius: '12px' }}>
             <UserIcon size={16} /> 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: '700' }}>Atharva_Dev</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: '700' }}>{localStorage.getItem('username') || 'Operator'}</span>
                 <span style={{ fontSize: '0.6rem', color: 'var(--primary)', fontWeight: '800' }}>{role?.toUpperCase()}</span>
             </div>
           </div>

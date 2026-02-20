@@ -1,29 +1,69 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, Eye, EyeOff, ShieldCheck, AlertCircle, UserCheck } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, ShieldCheck, AlertCircle, UserCheck, UserPlus } from 'lucide-react';
 
 const Login = () => {
-    const [credentials, setCredentials] = useState({ email: '', password: '' });
-    const [role, setRole] = useState('Operator'); // Default Role
+    const [isSignup, setIsSignup] = useState(false);
+    const [credentials, setCredentials] = useState({ username: '', email: '', password: '' });
+    const [role, setRole] = useState('Operator');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    const handleLogin = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        if (!credentials.email || !credentials.password) {
-            setError("Authentication credentials required.");
-            return;
+        setError('');
+
+        if (isSignup) {
+            if (!credentials.username || !credentials.email || !credentials.password) {
+                setError("All fields are required for signup.");
+                return;
+            }
+        } else {
+            if (!credentials.email || !credentials.password) {
+                setError("Authentication credentials required.");
+                return;
+            }
         }
 
-        // --- ASLI JADU YAHA HAI ---
-        localStorage.setItem('userRole', role); // Role save karo
-        localStorage.setItem('isAuthenticated', 'true'); 
-        
-        // Dashboard pe bhejo
-        navigate('/submit');
-        window.location.reload(); // Force reload taaki App.jsx naya role pakad le
+        setLoading(true);
+
+        try {
+            const url = isSignup
+                ? 'http://localhost:5000/api/auth/signup'
+                : 'http://localhost:5000/api/auth/login';
+
+            const body = isSignup
+                ? { username: credentials.username, email: credentials.email, password: credentials.password }
+                : { username: credentials.email, password: credentials.password };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const data = await response.json();
+
+            if (data.error) {
+                setError(data.error + (data.details ? ': ' + data.details.join(', ') : ''));
+                setLoading(false);
+                return;
+            }
+
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('userRole', role);
+            localStorage.setItem('isAuthenticated', 'true');
+            if (data.user) {
+                localStorage.setItem('username', data.user.username);
+            }
+            
+            navigate('/submit');
+            window.location.reload();
+        } catch (err) {
+            setError('Failed to connect to the server. Is the backend running?');
+            setLoading(false);
+        }
     };
 
     return (
@@ -36,8 +76,10 @@ const Login = () => {
                     <ShieldCheck size={32} color="var(--primary)" />
                 </div>
 
-                <h2 style={{ margin: '0 0 10px 0', fontSize: '1.5rem' }}>Operator Login</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '30px' }}>Access HashVault Security Protocols</p>
+                <h2 style={{ margin: '0 0 10px 0', fontSize: '1.5rem' }}>{isSignup ? 'Create Account' : 'Operator Login'}</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '30px' }}>
+                    {isSignup ? 'Register for HashVault Access' : 'Access HashVault Security Protocols'}
+                </p>
 
                 {error && (
                     <div className="error-msg">
@@ -45,17 +87,30 @@ const Login = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    {/* Email Input */}
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                    {/* Username (signup only) */}
+                    {isSignup && (
+                        <div className="input-with-icon">
+                            <UserPlus className="input-icon" size={18} />
+                            <input 
+                                type="text" placeholder="Username (min 3 chars)" required
+                                value={credentials.username}
+                                onChange={(e) => setCredentials({...credentials, username: e.target.value})}
+                            />
+                        </div>
+                    )}
+
+                    {/* Email / Username Input */}
                     <div className="input-with-icon">
                         <Mail className="input-icon" size={18} />
                         <input 
-                            type="email" placeholder="Operator Email" required
+                            type="text" placeholder={isSignup ? "Email Address" : "Username or Email"} required
+                            value={credentials.email}
                             onChange={(e) => setCredentials({...credentials, email: e.target.value})}
                         />
                     </div>
 
-                    {/* ⭐ ROLE SELECTOR DROPDOWN ⭐ */}
+                    {/* Role Selector */}
                     <div className="input-with-icon">
                         <UserCheck className="input-icon" size={18} />
                         <select 
@@ -76,7 +131,8 @@ const Login = () => {
                         <Lock className="input-icon" size={18} />
                         <input 
                             type={showPassword ? "text" : "password"} 
-                            placeholder="Secret Access Key" required
+                            placeholder={isSignup ? "Password (min 6 chars)" : "Secret Access Key"} required
+                            value={credentials.password}
                             onChange={(e) => setCredentials({...credentials, password: e.target.value})}
                         />
                         <div onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '15px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
@@ -84,10 +140,20 @@ const Login = () => {
                         </div>
                     </div>
 
-                    <button type="submit" className="submit-btn" style={{ marginTop: '10px' }}>
-                        INITIALIZE SESSION
+                    <button type="submit" className="submit-btn" style={{ marginTop: '10px' }} disabled={loading}>
+                        {loading ? 'PROCESSING...' : (isSignup ? 'CREATE ACCOUNT' : 'INITIALIZE SESSION')}
                     </button>
                 </form>
+
+                <p style={{ marginTop: '20px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    {isSignup ? 'Already have an account? ' : "Don't have an account? "}
+                    <span 
+                        onClick={() => { setIsSignup(!isSignup); setError(''); }}
+                        style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: '700' }}
+                    >
+                        {isSignup ? 'Login' : 'Sign Up'}
+                    </span>
+                </p>
             </div>
         </div>
     );
